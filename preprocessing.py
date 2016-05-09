@@ -50,9 +50,9 @@ def load_preprocessing(with_selector=False):
 
 
 def create_preprocessing():
-    train = pd.read_csv('../bnp/train.csv')
-    test = pd.read_csv('../bnp/test.csv')
-    submit = pd.read_csv('../bnp/sample_submission.csv')
+    train = pd.read_csv('../data/train.csv')
+    test = pd.read_csv('../data/test.csv')
+    submit = pd.read_csv('../data/sample_submission.csv')
     df_all = pd.concat([train, test], axis=0)
 
     #################
@@ -117,7 +117,7 @@ def create_preprocessing():
     # binning numerical features using decison tree
     ########################
     #enc_cont = OneHotEncoder()
-    X_cont = df_all[cont_features].apply(lambda x: binningData(x)[1])
+    X_cont = GBTEncoder(n_estimators=5, max_depth=3, min_samples_leaf=3).fit_transform(df_all[cont_features].values) #.apply(lambda x: binningData(x)[1])
     
     # Add new date related fields
     #print("Adding new fields...")
@@ -140,8 +140,8 @@ def create_preprocessing():
     target = df_all[df_all.target.notnull()].target.values
     x_train_mix = hstack([train[cont_features].values, X_cat.tocsr()[train.index.values]])
     x_test_mix = hstack([test[cont_features].values, X_cat.tocsr()[test.index.values]])
-    x_train_cat = hstack([X_cont[df_all.target.notnull()].values, X_cat.tocsr()[train.index.values]])
-    x_test_cat = hstack([X_cont[df_all.target.isnull()].values, X_cat.tocsr()[test.index.values]])
+    x_train_cat = hstack([X_cont.tocsr()[train.index.values], X_cat.tocsr()[train.index.values]])
+    x_test_cat = hstack([X_cont.tocsr()[test.index.values], X_cat.tocsr()[test.index.values]])
     
     # Save
     np.savetxt('train.txt', train, fmt='%s')
@@ -151,3 +151,5 @@ def create_preprocessing():
     save_sparse_csr('xtest_mix', x_test_mix.tocsr())
     save_sparse_csr('xtrain_cat', x_train_cat.tocsr())
     save_sparse_csr('xtest_cat', x_test_cat.tocsr())
+    
+    return train, target, test, x_train_mix, x_test_mix, x_train_cat, x_test_cat
